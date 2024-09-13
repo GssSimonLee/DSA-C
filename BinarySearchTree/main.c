@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define QUEUE_MAX_SIZE 10
 typedef struct treenode {
     int value;
     struct treenode *left;
@@ -26,7 +27,7 @@ treenode *findmin(treenode *root) {
     return findmin(root->left);
 }
 
-bool insertnumber(treenode **rootptr, int value) {
+bool insert(treenode **rootptr, int value) {
     treenode *root = *rootptr;
 
     if (root == NULL) {
@@ -42,10 +43,10 @@ bool insertnumber(treenode **rootptr, int value) {
     }
 
     if (value < root->value) {
-        return insertnumber(&(root->left), value);
+        return insert(&(root->left), value);
     }
 
-    return insertnumber(&(root->right), value);
+    return insert(&(root->right), value);
 }
 
 bool findnumber(treenode *node, int value) {
@@ -107,31 +108,86 @@ treenode *delete(treenode *root, int target) {
 
 void inordertraversal(treenode *root) {
     if (root == NULL) return;
-    if (root->left != NULL) inordertraversal(root->left);
+    inordertraversal(root->left);
     printf("%d ", root->value);
-    if (root->right != NULL) inordertraversal(root->right);
+    inordertraversal(root->right);
+}
+
+void levelordertraversl(treenode *root) {
+    if (root == NULL) return;
+
+    treenode **queue = (treenode**)malloc(sizeof(treenode*) * QUEUE_MAX_SIZE);
+    int front = 0, rear = 0;
+
+    // enqueue root
+    queue[rear++] = root;
+    
+    while (front < rear) {
+        treenode *current = queue[front++];
+
+        printf("%d ", current->value);
+
+        if (current->left != NULL) {
+            // enqueue left child
+            queue[rear++] = current->left;
+        }
+
+        if (current->right != NULL) {
+            // enqueue right child
+            queue[rear++] = current->right;
+        }
+    }
+    
+    free(queue);
+}
+
+void preordertraversaliterative(treenode *root) {
+    if (root == NULL) {
+        return;
+    }
+    int top = 0, STACK_SIZE = 10;
+    treenode **stack = (treenode**)malloc(sizeof(treenode*) * STACK_SIZE);
+    // push
+    stack[top++] = root;
+    while (top > 0) {
+        treenode *curr = stack[top--];
+        printf("%d ", curr->value);
+        if (curr->right != NULL) {
+            stack[top++] = curr->right;
+        }
+        if (curr->left != NULL) {
+            stack[top++] = curr->left;
+        }
+    }
 }
 
 int main(int argc, char** argv) {
     treenode *root = NULL;
-    insertnumber(&root, 13);
-    insertnumber(&root, 8);
-    insertnumber(&root, 20);
-    insertnumber(&root, 2);
-    insertnumber(&root, 15);
-    insertnumber(&root, 32);
-    insertnumber(&root, 17);
-    insertnumber(&root, 19);
-    insertnumber(&root, 10);
-    insertnumber(&root, 9);
+    insert(&root, 13);
+    insert(&root, 8);
+    insert(&root, 20);
+    insert(&root, 2);
+    insert(&root, 15);
+    insert(&root, 32);
+    insert(&root, 17);
+    insert(&root, 19);
+    insert(&root, 10);
+    insert(&root, 9);
 
     printf("Tree: \n");
 
     printf("inorder traversal\n");
     inordertraversal(root);
-
     printf("\n");
 
+    printf("level traversal\n");
+    levelordertraversl(root);
+
+    printf("\n");
+    printf("iteratively preorder traversal:\n");
+    preordertraversaliterative(root);
+
+    printf("\n");
     printf("findnumber: 10, found(0/1): %d.\n", findnumber(root, 10));
     printf("findnumber: 17, found(0/1): %d.\n", findnumber(root, 17));
     printf("findnumber: 3, found(0/1): %d.\n", findnumber(root, 3));
@@ -153,5 +209,6 @@ int main(int argc, char** argv) {
     printf("inorder traversal\n");
     inordertraversal(root);
     printf("\n");
+
     return 0;
 }
