@@ -19,14 +19,6 @@ treenode *createnode(int value) {
     return result;
 }
 
-treenode *findmin(treenode *root) {
-    // empty
-    if (root == NULL) return root;
-    // no left child
-    if (root->left == NULL) return root;
-    return findmin(root->left);
-}
-
 bool insert(treenode **rootptr, int value) {
     treenode *root = *rootptr;
 
@@ -77,12 +69,12 @@ treenode *delete(treenode *root, int target) {
 
     // root->value == target
     // case 1. no child
-    if (root->left == NULL && root->right == NULL) {
-        free(root);
-        return root = NULL;
-    }
+    // if (root->left == NULL && root->right == NULL) {
+    //     free(root);
+    //     return root = NULL;
+    // }
 
-    // case 2. one child
+    // case 2. one child (combine no child with this condition as well)
     if (root->left == NULL) {
         treenode *temp = root;
         root = root->right;
@@ -99,8 +91,13 @@ treenode *delete(treenode *root, int target) {
 
     // case 3. two children
     // there two approaches: 1. find maximum of left subtree and swap 2. find minimum of right subtree and swap
-    // find minmum of right subtree approaches
-    treenode *min = findmin(root->right);
+    // find minimum of right subtree approaches
+    treenode *min, *curr;
+    curr = root->right;
+    while (curr != NULL) {
+        min = curr;
+        curr = curr->left;
+    }
     root->value = min->value;
     root->right = delete(root->right, min->value);
     return root;
@@ -145,18 +142,18 @@ void preordertraversaliterative(treenode *root) {
     if (root == NULL) {
         return;
     }
-    int top = 0, STACK_SIZE = 10;
+    int top = -1, STACK_SIZE = 10;
     treenode **stack = (treenode**)malloc(sizeof(treenode*) * STACK_SIZE);
     // push
-    stack[top++] = root;
-    while (top > 0) {
+    stack[++top] = root;
+    while (top != -1) {
         treenode *curr = stack[top--];
         printf("%d ", curr->value);
         if (curr->right != NULL) {
-            stack[top++] = curr->right;
+            stack[++top] = curr->right;
         }
         if (curr->left != NULL) {
-            stack[top++] = curr->left;
+            stack[++top] = curr->left;
         }
     }
 }
