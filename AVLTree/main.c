@@ -152,6 +152,70 @@ treenode *insert(treenode *root, int value) {
   return NULL;
 }
 
+treenode *delete(treenode *root, int target) {
+  if (root == NULL) {
+    printf("delete fail. target %d not found in tree\n", target);
+    return NULL;
+  }
+  if (target > root->value) {
+    root->right = delete(root->right, target);
+    return root;
+  }
+  if (target < root->value) {
+    root->left = delete(root->left, target);
+    return root;
+  }
+  // target == root->value
+  treenode *tmp;
+  if (root->left == NULL) {
+    tmp = root;
+    root = root->right;
+    free(tmp);
+  } else if (root->right == NULL) {
+    tmp = root;
+    root = root->left;
+    free(tmp);
+  } else { // 2 children
+    // find maximum of left sub tree
+    tmp = root->left;
+    treenode *max;
+    while (tmp != NULL) {
+      max = tmp;
+      tmp = tmp->right;
+    }
+    root->value = max->value;
+    root->left = delete(root->left, max->value);
+  }
+  if (root == NULL) return NULL;
+
+  //===== bst delete complete, do balancing below =====
+  root->height = getmax(getheight(root->left), getheight(root->right)) + 1;
+  int balancefactor = getbalancefactor(root);
+
+  if (balancefactor == 0 || balancefactor == 1 || balancefactor == -1) return root;
+
+  if (balancefactor > 1) { // left heavy
+    if (getbalancefactor(root->left) >= 0) {
+      // do right rotate on root
+      return rightrotate(root);
+    } else {
+      // do left rotate on left child then right rotate on root
+      root->left = leftrotate(root->left);
+      return rightrotate(root);
+    }
+  } else { // right heavy
+    if (getbalancefactor(root->right) >= 0) {
+      // do right rotate on right child then left rotate on root
+      root->right = rightrotate(root->right);
+      return leftrotate(root);
+    } else {
+      // do left rotate on root
+      return leftrotate(root);
+    }
+  }
+  return root;
+}
+
 void inordertraversal(treenode *node) {
   if (node == NULL) return;
   inordertraversal(node->left);
@@ -209,5 +273,28 @@ int main(int argc, char** argv) {
   printf("\n");
   printf("level traversal:\n");
   levelordertraversal(tree);
+  printf("\n");
+
+  printf("delete 2 from tree\n");
+  delete(tree, 2);
+
+  printf("level traversal:\n");
+  levelordertraversal(tree);
+  printf("\n");
+
+  printf("delete 13 from tree\n");
+  delete(tree, 13);
+
+  printf("level traversal:\n");
+  levelordertraversal(tree);
+  printf("\n");
+
+  printf("delete 13 from tree\n");
+  delete(tree, 13);
+
+  printf("level traversal:\n");
+  levelordertraversal(tree);
+  printf("\n");
+
   return 0;
 }
