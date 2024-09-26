@@ -55,45 +55,6 @@ treenode *leftrotate(treenode *y)
     return x;
 }
 
-treenode *insert(treenode *root, int data)
-{
-    treenode *curr = root, *prev = NULL;
-    while (curr != NULL)
-    {
-        prev = curr;
-        if (data == curr->data)
-        {
-            // conflict
-        }
-        else if (data < curr->data)
-        {
-            curr = curr->left;
-        }
-        else if (data > curr->data)
-        {
-            curr = curr->right;
-        }
-    }
-    if (data == prev->data)
-    {
-        printf("insert %d fail, conflict data\n", data);
-        return root;
-    }
-    treenode *newnode = createnode(data);
-    if (data > prev->data)
-    {
-        prev->right = newnode;
-        newnode->parent = prev;
-    }
-    if (data < prev->data)
-    {
-        prev->left = newnode;
-        newnode->parent = prev;
-    }
-    root = fixup(root, newnode);
-    return root;
-}
-
 /*
     G-P-Z as line
           G
@@ -134,7 +95,7 @@ treenode *fixup(treenode *root, treenode *z)
         if (parent == grandparent->left)
         {
             uncle = grandparent->right;
-            if (uncle->color = Red)
+            if (uncle != NULL && uncle->color == Red)
             {
                 parent->color = uncle->color = Black;
                 grandparent->color = Red;
@@ -155,22 +116,26 @@ treenode *fixup(treenode *root, treenode *z)
                     parent = tmp;
                     grandparent->left = leftrotate(z);
                 }
-                grandparent->color = parent->color = Black;
+                grandparent->color = Red;
+                parent->color = Black;
                 treenode *grandgrandparent = grandparent->parent;
-                if (grandgrandparent->left == grandparent)
+                if (grandgrandparent != NULL)
                 {
-                    grandgrandparent->left = rightrotate(grandparent);
-                }
-                else
-                {
-                    grandgrandparent->right = rightrotate(grandparent);
+                    if (grandgrandparent->left == grandparent)
+                    {
+                        grandgrandparent->left = rightrotate(grandparent);
+                    }
+                    else
+                    {
+                        grandgrandparent->right = rightrotate(grandparent);
+                    }
                 }
             }
         }
         else
         { // right child
-            uncle = grandparent->right;
-            if (uncle->color = Red)
+            uncle = grandparent->left;
+            if (uncle != NULL && uncle->color == Red)
             {
                 parent->color = uncle->color = Black;
                 grandparent->color = Red;
@@ -191,15 +156,19 @@ treenode *fixup(treenode *root, treenode *z)
                     parent = tmp;
                     grandparent->right = rightrotate(z);
                 }
-                grandparent->color = parent->color = Black;
+                grandparent->color = Red;
+                parent->color = Black;
                 treenode *grandgrandparent = grandparent->parent;
-                if (grandgrandparent->right == grandparent)
+                if (grandgrandparent != NULL)
                 {
-                    grandgrandparent->right = leftrotate(grandparent);
-                }
-                else
-                {
-                    grandgrandparent->left = leftrotate(grandparent);
+                    if (grandgrandparent->right == grandparent)
+                    {
+                        grandgrandparent->right = leftrotate(grandparent);
+                    }
+                    else
+                    {
+                        grandgrandparent->left = leftrotate(grandparent);
+                    }
                 }
             }
         }
@@ -207,4 +176,80 @@ treenode *fixup(treenode *root, treenode *z)
     // case 1 -> do nothing
     // case 0 -> recolor root
     root->color = Black;
+    return root;
+}
+
+treenode *insert(treenode *root, int data)
+{
+    if (root == NULL)
+    {
+        treenode *newnode = createnode(data);
+        newnode->color = Black;
+        return newnode;
+    }
+    treenode *curr = root, *prev = NULL;
+    while (curr != NULL)
+    {
+        prev = curr;
+        if (data == curr->data)
+        {
+            // conflict
+        }
+        else if (data < curr->data)
+        {
+            curr = curr->left;
+        }
+        else if (data > curr->data)
+        {
+            curr = curr->right;
+        }
+    }
+    if (data == prev->data)
+    {
+        printf("insert %d fail, conflict data\n", data);
+        return root;
+    }
+    treenode *newnode = createnode(data);
+    if (data > prev->data)
+    {
+        prev->right = newnode;
+        newnode->parent = prev;
+    }
+    if (data < prev->data)
+    {
+        prev->left = newnode;
+        newnode->parent = prev;
+    }
+    root = fixup(root, newnode);
+    return root;
+}
+
+void inorder(treenode *node)
+{
+    if (node == NULL)
+        return;
+    inorder(node->left);
+    printf("%d ", node->data);
+    inorder(node->right);
+}
+
+int main()
+{
+    treenode *tree = NULL;
+    tree = insert(tree, 25);
+    tree = insert(tree, 28);
+    tree = insert(tree, 20);
+    tree = insert(tree, 26);
+    tree = insert(tree, 11);
+    tree = insert(tree, 2);
+    tree = insert(tree, 9);
+    tree = insert(tree, 7);
+    tree = insert(tree, 10);
+    tree = insert(tree, -10);
+    tree = insert(tree, -30);
+    tree = insert(tree, -15);
+    printf("inorder traversal:\n");
+    inorder(tree);
+    printf("\n");
+    return 0;
 }
