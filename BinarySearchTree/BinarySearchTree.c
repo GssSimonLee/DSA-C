@@ -41,6 +41,26 @@ bool insert(treenode **rootptr, int value) {
     return insert(&(root->right), value);
 }
 
+treenode *insertiterative(treenode *root, int data) {
+    treenode *curr = root, *prev = NULL;
+    while (curr != NULL) {
+        prev = curr;
+        if (data == curr->value) {
+            // conflict
+        } else if (data > curr->value) {
+            curr = curr->right;
+        } else { // data < curr->value
+            curr = curr->left;
+        }
+    }
+    if (data > prev->value) {
+        prev->right = createnode(data);
+    } else if (data < prev->value) {
+        prev->left = createnode(data);
+    }
+    return root;
+}
+
 bool findnumber(treenode *node, int value) {
     // the tree is empty
     if (node == NULL) return false;
@@ -203,6 +223,12 @@ int main(int argc, char** argv) {
     printf("findnumber: 10, found(0/1): %d.\n", findnumber(root, 10));
     printf("findnumber: 17, found(0/1): %d.\n", findnumber(root, 17));
     printf("findnumber: 4, found(0/1): %d.\n", findnumber(root, 4));
+    printf("inorder traversal\n");
+    inordertraversal(root);
+    printf("\n");
+
+    printf("insert 7 iteratively\n");
+    root = insertiterative(root , 7);
     printf("inorder traversal\n");
     inordertraversal(root);
     printf("\n");
