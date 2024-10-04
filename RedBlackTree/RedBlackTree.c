@@ -29,29 +29,61 @@ treenode *createnode(int data)
 
 treenode *rightrotate(treenode *x)
 {
+    // find parent, y, t2
     treenode *y = x->left;
     treenode *t2 = y->right;
+    treenode *p = x->parent;
 
+    // parent <-> y
+    y->parent = p;
+    if (p != NULL) {
+        if (p->left == x) {
+            p->left = y;
+        } else {
+            p->right = y;
+        }
+    }
+
+    // y <-> x
     y->right = x;
     x->parent = y;
 
+    // x <-> t2
     x->left = t2;
-    if (t2 != NULL)
+    if (t2 != NULL) {
         t2->parent = x;
+    }
+    
     return y;
 }
 
 treenode *leftrotate(treenode *y)
 {
+    // find parent, x, t2
     treenode *x = y->right;
     treenode *t2 = x->left;
+    treenode *p = y->parent;
 
+    // parent <-> x
+    x->parent = p;
+    if (p != NULL) {
+        if (p->left == y) {
+            p->left = x;
+        } else {
+            p->right = x;
+        }
+    }
+
+    // x <-> y
     x->left = y;
     y->parent = x;
 
+    // y <-> t2
     y->right = t2;
-    if (t2 != NULL)
+    if (t2 != NULL) {
         t2->parent = y;
+    }
+
     return x;
 }
 
@@ -78,16 +110,18 @@ case 2: P is red and U is red -> recolor P, U to Black, G to Red -> set Z to G -
 case 3: P is red and U is black and G-P-Z triangle -> rotate P make G-Z-P line -> to case 4
 case 4: P is red and U is black and G-P-Z line -> rotate G toward U -> recolor P to Black, G to Red
 */
-treenode *fixup(treenode *root, treenode *z)
+treenode *insertfixup(treenode *root, treenode *z)
 {
     // skip case 0, 1
     while (z != root && z->parent->color == Red)
     {
-        // divide to two part
-        //         G         G
-        //        /   and     \
-        //       P             P
-        // (left child)  (right child)
+        /*
+         divide to two part
+                 G         G
+                /   and     \
+               P             P
+         (left child)  (right child)
+        */
         treenode *uncle, *parent, *grandparent;
         parent = z->parent;
         grandparent = parent->parent;
@@ -105,12 +139,14 @@ treenode *fixup(treenode *root, treenode *z)
             {
                 if (z == parent->right)
                 {
-                    //   G
-                    //  /
-                    // P
-                    //  \
-                    //   Z
-                    // swap Z and P
+                    /*
+                       G
+                      /
+                     P
+                      \
+                       Z
+                     swap Z and P
+                    */
                     treenode *tmp = z;
                     z = parent;
                     parent = tmp;
@@ -145,12 +181,14 @@ treenode *fixup(treenode *root, treenode *z)
             {
                 if (z == parent->left)
                 {
-                    //   G
-                    //    \
-                    //     P
-                    //    /
-                    //   Z
-                    // swap Z and P
+                    /*
+                       G
+                        \
+                         P
+                        /
+                       Z
+                     swap Z and P
+                    */
                     treenode *tmp = z;
                     z = parent;
                     parent = tmp;
@@ -220,8 +258,96 @@ treenode *insert(treenode *root, int data)
         prev->left = newnode;
         newnode->parent = prev;
     }
-    root = fixup(root, newnode);
+    root = insertfixup(root, newnode);
     return root;
+}
+
+treenode *search(treenode *root, int target) {
+    if (root == NULL) {
+        return NULL;
+    }
+
+    if (root->data == target) return root;
+    if (target > root->data) return search(root->right, target);
+    // target < root->data
+    return search(root->left, target);
+}
+
+treenode *findsuccessor(treenode *node) {
+    treenode *curr = node;
+    whilde (curr->left != NULL) {
+        curr = curr->left;
+    }
+    return curr;
+}
+
+treenode *deletefixup(treenode *root, treenode *Z) {
+    return root;
+}
+
+treenode *delete(treenode *root, int target) {
+    if (root == NULL) {
+        printf("target: %d not found.", target);
+        return NULL;
+    }
+    /*
+        target(int): the target value user want to delete
+        targetnode(treenode*): pointer point to the node value equals to target
+        node2delete(treenode*): pointer point to the node that will be delete and free memory
+        x(treenode*): pointer point to the node that will replace node2delete (could be nil)
+    */
+    // step 1, find targetnode, node2delete, x
+    treenode *targetnode = NULL, *node2delete = NULL, *x = NULL;
+    targetnode = search(root, target);
+    // targetnode has zero or one child node
+    if (targetnode->right == NULL || targetnode->left == NULL) {
+        node2delete = targetnode;
+    } else { // target node has two children node
+        node2delete = findsuccessor(targetnode->right);
+    }
+    Color node2deletecolor = node2delete->color;
+
+    if (node2delete->left != NULL) {
+        x = node2delete->left;
+    } else {
+        x = node2delete->right;
+    }
+
+    // step 2. delete node2delete and fix pointers (bst delete)
+    // parent <-> x
+    if (node2delete->parent != NULL) { // node2delete is not root
+        if (x != NULL) {
+            x->parent = node2delete->parent;
+        }
+        if (node2delete == node2delete->parent->left) { // is left child
+            node2delete->parent->left = x;
+        } else { // is right child
+            node2delete->parent->right = x;
+        }
+    }
+
+    // targetnode has 2 children nodes
+    if (node2delete != targetnode) {
+        targetnode->data = node2delete->data;
+        free(node2delete);
+    }
+
+    if (node2deletecolor == Black) {
+        deletefixup(root, x);
+    }
+
+    /*
+    target == root->data
+    0, 1, 2 child(children)
+    there are 2 approaches in BST deletion
+    step 1
+        1. find inorder successor(minimum) of right subtree
+        2. find inorder precessor(maximum) of left subtree
+    step 2
+        replace current node's value with successor/precessor's value
+    step 3
+        do futher deletion recursively
+    */
 }
 
 void inorder(treenode *node)
