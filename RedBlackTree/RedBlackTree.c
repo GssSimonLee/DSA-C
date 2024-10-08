@@ -119,27 +119,27 @@ void leftrotate(rbtree *tree, treenode *y)
 }
 
 /*
-    G-P-Z as line
-          G
+    g-p-z as line
+          g
          / \
-        P   U
+        p   u
        /
-      Z
-    G-P-Z as triangle
-          G
+      z
+    g-p-z as triangle
+          g
          / \
-        P   U
+        p   u
          \
-          Z
-    G: Grand Parent Node
-    P: Parent Node
-    U: Uncle Node
-    Z: New Added Node (the node that make the tree imbalanced)
-case 0: Z is root -> recolor to black -> done
-case 1: P is Black -> do nothing -> done
-case 2: P is red and U is red -> recolor P, U to Black, G to Red -> set Z to G -> do futher rebalance
-case 3: P is red and U is black and G-P-Z triangle -> rotate P make G-Z-P line -> to case 4
-case 4: P is red and U is black and G-P-Z line -> rotate G toward U -> recolor P to Black, G to Red
+          z
+    g: Grand Parent Node
+    p: Parent Node
+    u: Uncle Node
+    z: New Added Node (the node that make the tree imbalanced)
+case 0: z is root -> recolor to black -> done
+case 1: p is Black -> do nothing -> done
+case 2: p is red and u is red -> recolor p, u to Black, g to Red -> set z to g -> do futher rebalance
+case 3: p is red and u is black and g-p-z triangle -> rotate p make g-z-p line -> to case 4
+case 4: p is red and u is black and g-p-z line -> rotate g toward u -> recolor p to Black, g to Red
 */
 void insertfixup(rbtree *tree, treenode *z)
 {
@@ -147,80 +147,87 @@ void insertfixup(rbtree *tree, treenode *z)
     while (z != tree->root && z->parent->color == Red)
     {
         /*
-         divide to two part
-                 G         G
+        since parent red -> grandparent must exist as black node
+        divide to two part
+                 g         g
                 /   and     \
-               P             P
-         (left child)  (right child)
+               p             p
+        (left child)  (right child)
         */
-        treenode *uncle, *parent, *grandparent;
-        parent = z->parent;
-        grandparent = parent->parent;
+        treenode *u, *p, *g;
+        p = z->parent;
+        g = p->parent;
         // left child
-        if (parent == grandparent->left)
+        if (p == g->left)
         {
-            uncle = grandparent->right;
-            if (uncle->color == Red)
+            u = g->right;
+            // case 2
+            if (u->color == Red)
             {
-                parent->color = uncle->color = Black;
-                grandparent->color = Red;
-                z = grandparent;
+                p->color = u->color = Black;
+                g->color = Red;
+                z = g;
             }
             else
             {
-                if (z == parent->right)
+                // case 3
+                if (z == p->right)
                 {
                     /*
-                       G
+                       g
                       /
-                     P
+                     p
                       \
-                       Z
-                     swap Z and P
+                       z
+                     swap z and p
                      then rotate
                     */
                     treenode *tmp = z;
-                    z = parent;
-                    parent = tmp;
+                    z = p;
+                    p = tmp;
                     leftrotate(tree, z);
                 }
-                grandparent->color = Red;
-                parent->color = Black;
+                // case 4
+                g->color = Red;
+                p->color = Black;
 
-                rightrotate(tree, grandparent);
+                rightrotate(tree, g);
             }
         }
         else
         { // right child
-            uncle = grandparent->left;
-            if (uncle->color == Red)
+            u = g->left;
+            // case 2
+            if (u->color == Red)
             {
-                parent->color = uncle->color = Black;
-                grandparent->color = Red;
-                z = grandparent;
+                p->color = u->color = Black;
+                g->color = Red;
+                z = g;
             }
             else
             {
-                if (z == parent->left)
+                // case 3
+                if (z == p->left)
                 {
                     /*
-                       G
+                       g
                         \
-                         P
+                         p
                         /
-                       Z
-                     swap Z and P
+                       z
+                     swap z and p
                      then rotate
                     */
                     treenode *tmp = z;
-                    z = parent;
-                    parent = tmp;
+                    z = p;
+                    p = tmp;
                     rightrotate(tree, z);
                 }
-                grandparent->color = Red;
-                parent->color = Black;
+                // case 4
+                g->color = Red;
+                p->color = Black;
 
-                leftrotate(tree, grandparent);
+                leftrotate(tree, g);
             }
         }
     }
@@ -238,38 +245,38 @@ void insert(rbtree *tree, int data)
         tree->root = newnode;
         return;
     }
-    treenode *curr = tree->root, *prev = NULL;
-    while (curr != NIL)
+    treenode *prev = tree->root, *curr = NULL;
+    while (prev != NIL)
     {
-        prev = curr;
-        if (data == curr->data)
+        curr = prev;
+        if (data == prev->data)
         {
             // conflict
         }
-        else if (data < curr->data)
+        else if (data < prev->data)
         {
-            curr = curr->left;
+            prev = prev->left;
         }
-        else if (data > curr->data)
+        else if (data > prev->data)
         {
-            curr = curr->right;
+            prev = prev->right;
         }
     }
-    if (data == prev->data)
+    if (data == curr->data)
     {
         printf("insert %d fail, conflict data\n", data);
         return;
     }
     treenode *newnode = createnode(data);
-    if (data > prev->data)
+    if (data > curr->data)
     {
-        prev->right = newnode;
-        newnode->parent = prev;
+        curr->right = newnode;
+        newnode->parent = curr;
     }
-    if (data < prev->data)
+    if (data < curr->data)
     {
-        prev->left = newnode;
-        newnode->parent = prev;
+        curr->left = newnode;
+        newnode->parent = curr;
     }
     insertfixup(tree, newnode);
 }
@@ -402,7 +409,7 @@ void delete(rbtree *tree, int target)
         target(int): the target value user want to delete
         z (treenode*): pointer point to the node value equals to target
         y (treenode*): pointer point to the node that will be delete and free memory
-        x(treenode*): pointer point to the node that will replace node2delete (could be nil)
+        x (treenode*): pointer point to the node that will replace node2delete (could be nil)
     */
     // step 1, find targetnode, node2delete, x
     treenode *z = NULL, *y = NULL, *x = NULL;
@@ -479,9 +486,6 @@ int main()
     insert(tree, 9);
     insert(tree, 7);
     insert(tree, 10);
-    insert(tree, -10);
-    insert(tree, -30);
-    insert(tree, -15);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
     inorder(tree->root);
