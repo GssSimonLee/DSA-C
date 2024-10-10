@@ -18,12 +18,8 @@ typedef struct treenode
 typedef struct rbtree
 {
     struct treenode *root;
+    struct treenode *NIL;
 } rbtree;
-
-#define NIL (&sentinel)
-
-treenode sentinel = {
-    .color = Black, .left = NIL, .right = NIL, .parent = NULL, .data = 0};
 
 treenode *createnode(int data)
 {
@@ -31,16 +27,19 @@ treenode *createnode(int data)
     if (node != NULL)
     {
         node->data = data;
-        node->parent = NULL;
-        node->right = node->left = NIL;
+        node->parent = node->right = node->left = NULL;
         node->color = Red; // every new node should be colored red
     }
     return node;
 }
 
-rbtree *createtree() {
-    rbtree *tree = (rbtree*)malloc(sizeof(rbtree));
-    tree->root = NIL;
+rbtree *createtree()
+{
+    rbtree *tree = (rbtree *)malloc(sizeof(rbtree));
+    treenode *nil = createnode(0);
+    nil->color = Black;
+    tree->root = nil;
+    tree->NIL = nil;
     return tree;
 }
 
@@ -53,7 +52,7 @@ void rightrotate(rbtree *tree, treenode *x)
 
     // parent <-> y
     y->parent = p;
-    if (p != NULL)
+    if (p != tree->NIL)
     {
         if (p->left == x)
         {
@@ -75,7 +74,7 @@ void rightrotate(rbtree *tree, treenode *x)
 
     // x <-> t2
     x->left = t2;
-    if (t2 != NIL)
+    if (t2 != tree->NIL)
     {
         t2->parent = x;
     }
@@ -90,7 +89,7 @@ void leftrotate(rbtree *tree, treenode *y)
 
     // parent <-> x
     x->parent = p;
-    if (p != NULL)
+    if (p != tree->NIL)
     {
         if (p->left == y)
         {
@@ -112,7 +111,7 @@ void leftrotate(rbtree *tree, treenode *y)
 
     // y <-> t2
     y->right = t2;
-    if (t2 != NIL)
+    if (t2 != tree->NIL)
     {
         t2->parent = y;
     }
@@ -147,7 +146,7 @@ void insertfixup(rbtree *tree, treenode *z)
     while (z != tree->root && z->parent->color == Red)
     {
         /*
-        since parent red -> grandparent must exist as black node
+        since parent is red -> grandparent must exist as black node
         divide to two part
                  g         g
                 /   and     \
@@ -238,63 +237,63 @@ void insertfixup(rbtree *tree, treenode *z)
 
 void insert(rbtree *tree, int data)
 {
-    if (tree->root == NIL)
-    {
-        treenode *newnode = createnode(data);
-        newnode->color = Black;
-        tree->root = newnode;
-        return;
-    }
-    treenode *prev = tree->root, *curr = NULL;
-    while (prev != NIL)
+    treenode *prev = tree->root, *curr = tree->NIL;
+    while (prev != tree->NIL)
     {
         curr = prev;
-        if (data == prev->data)
-        {
-            // conflict
-        }
-        else if (data < prev->data)
+        if (data < prev->data)
         {
             prev = prev->left;
         }
-        else if (data > prev->data)
+        else
         {
             prev = prev->right;
         }
     }
-    if (data == curr->data)
+
+    if (curr != NULL && data == curr->data)
     {
         printf("insert %d fail, conflict data\n", data);
         return;
     }
     treenode *newnode = createnode(data);
-    if (data > curr->data)
+    newnode->left = newnode->right = tree->NIL;
+    newnode->parent = curr;
+    if (curr == tree->NIL) {
+        tree->root = newnode;
+    }
+    else if (data > curr->data)
     {
         curr->right = newnode;
-        newnode->parent = curr;
     }
-    if (data < curr->data)
+    else
     {
         curr->left = newnode;
-        newnode->parent = curr;
     }
+
     insertfixup(tree, newnode);
 }
 
 treenode *search(rbtree *tree, int target)
 {
-    if (tree->root == NIL)
+    if (tree->root == tree->NIL)
     {
         return NULL;
     }
     treenode *curr = tree->root;
 
-    while (curr != NIL) {
-        if (target == curr->data) {
+    while (curr != tree->NIL)
+    {
+        if (target == curr->data)
+        {
             return curr;
-        } else if (target > curr->data) {
+        }
+        else if (target > curr->data)
+        {
             curr = curr->right;
-        } else {
+        }
+        else
+        {
             curr = curr->left;
         }
     }
@@ -304,14 +303,31 @@ treenode *search(rbtree *tree, int target)
 /*
     find inorder successor
 */
-treenode *findsuccessor(treenode *node)
+treenode *findsuccessor(rbtree *tree, treenode *node)
 {
     treenode *curr = node;
-    while (curr->left != NIL)
+    while (curr->left != tree->NIL)
     {
         curr = curr->left;
     }
     return curr;
+}
+
+void transplant(rbtree *tree, treenode *old, treenode *new)
+{
+    if (old->parent == tree->NIL)
+    {
+        tree->root = new;
+    }
+    else if (old == old->parent->left)
+    { // old is its parent's left child
+        old->parent->left = new;
+    }
+    else
+    {
+        old->parent->right = new;
+    }
+    new->parent = old->parent;
 }
 
 void deletefixup(rbtree *tree, treenode *x)
@@ -321,17 +337,20 @@ void deletefixup(rbtree *tree, treenode *x)
         z was black and x is also black
         w is the sibling of x
     */
-    while (x != tree->root && x->color == Black) {
+    while (x != tree->root && x->color == Black)
+    {
         /*
             p
            /
           x
         x is left child
         */
-        if (x == x->parent->left) {
+        if (x == x->parent->left)
+        {
             treenode *w = x->parent->right;
             // case 0. sibling is red
-            if (w->color == Red) {
+            if (w->color == Red)
+            {
                 w->color = Black;
                 x->parent->color = Red;
 
@@ -339,10 +358,13 @@ void deletefixup(rbtree *tree, treenode *x)
                 w = x->parent->right;
             }
             // both sibling's children are black
-            if (w->left->color == Black && w->right->color == Black) {
+            if (w->left->color == Black && w->right->color == Black)
+            {
                 w->color = Red;
                 x = x->parent;
-            } else {
+            }
+            else
+            {
                 /*
                     p
                    / \
@@ -350,7 +372,8 @@ void deletefixup(rbtree *tree, treenode *x)
                      / \
                     wl  wr(w->right)
                 */
-                if (w->right->color == Black) {
+                if (w->right->color == Black)
+                {
                     w->left->color = Black;
                     w->color = Red;
 
@@ -364,10 +387,13 @@ void deletefixup(rbtree *tree, treenode *x)
                 leftrotate(tree, x->parent);
                 x = tree->root;
             }
-        } else { // x is right child
+        }
+        else
+        { // x is right child
             treenode *w = x->parent->left;
             // case 0. red sibling
-            if (w->color == Red) {
+            if (w->color == Red)
+            {
                 w->color = Black;
                 x->parent->color = Red;
 
@@ -375,11 +401,15 @@ void deletefixup(rbtree *tree, treenode *x)
                 w = x->parent->left;
             }
             // both children of sibling are black
-            if (w->right->color == Black && w->left->color == Black) {
+            if (w->right->color == Black && w->left->color == Black)
+            {
                 w->color = Red;
                 x = x->parent;
-            } else {
-                if (w->left->color == Black) {
+            }
+            else
+            {
+                if (w->left->color == Black)
+                {
                     w->right->color = Black;
                     w->color = Red;
 
@@ -400,7 +430,7 @@ void deletefixup(rbtree *tree, treenode *x)
 
 void delete(rbtree *tree, int target)
 {
-    if (tree->root == NIL)
+    if (tree->root == tree->NIL)
     {
         printf("target: %d not found.", target);
         return;
@@ -411,67 +441,64 @@ void delete(rbtree *tree, int target)
         y (treenode*): pointer point to the node that will be delete and free memory
         x (treenode*): pointer point to the node that will replace node2delete (could be nil)
     */
-    // step 1, find targetnode, node2delete, x
-    treenode *z = NULL, *y = NULL, *x = NULL;
-    z = search(tree, target);
-    // targetnode has zero or one child node
-    if (z->right == NIL || z->left == NIL)
-    {
-        y = z;
-    }
-    else
-    { // target node has two children node
-        y = findsuccessor(z->right);
-    }
-    color y_color = y->color;
+    // step 1, find z, y, x
+    treenode *z = search(tree, target);
+    treenode *y = z;
+    treenode *x;
+    color y_original_color = y->color;
 
-    if (y->left != NIL)
+    // z has zero or one child (z->right)
+    if (z->left == tree->NIL)
     {
-        x = y->left;
+        x = z->right;
+        transplant(tree, z, z->right);
+    }
+    else if (z->right == tree->NIL)
+    { // z has only left child
+        x = z->left;
+        transplant(tree, z, z->left);
     }
     else
-    {
+    { // z has two children
+        y = findsuccessor(tree, z->right);
+        y_original_color = y->color;
         x = y->right;
-    }
-
-    // step 2. delete node2delete and fix pointers (bst delete)
-    // parent <-> x
-    x->parent = y->parent;
-    if (y->parent != NIL)
-    { // node2delete is not root
-        if (y == y->parent->left)
-        { // is left child
-            y->parent->left = x;
+        // y is z's directly child
+        if (y->parent == z)
+        {
+            x->parent = y;
         }
         else
-        { // is right child
-            y->parent->right = x;
+        {
+            transplant(tree, y, y->right);
+            y->right = z->right;
+            y->right->parent = y;
         }
+        transplant(tree, z, y);
+        y->left = z->left;
+        y->left->parent = y;
+        y->color = z->color;
     }
 
-    // targetnode has 2 children nodes
-    if (y != z)
-    {
-        z->data = y->data;
-        free(z);
-    }
     // when y is red, no need to fix.
-    if (y_color == Black)
+    if (y_original_color == Black)
     {
         deletefixup(tree, x);
     }
+
+    // free(x);
 }
 
 /*
     inorder traversal
 */
-void inorder(treenode *node)
+void inorder(rbtree *tree, treenode *node)
 {
-    if (node == NIL)
+    if (node == tree->NIL)
         return;
-    inorder(node->left);
+    inorder(tree, node->left);
     printf("%d(%c) ", node->data, node->color == Red ? 'R' : 'B');
-    inorder(node->right);
+    inorder(tree, node->right);
 }
 
 int main()
@@ -488,26 +515,32 @@ int main()
     insert(tree, 10);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
-    inorder(tree->root);
+    inorder(tree, tree->root);
     printf("\n");
 
     printf("===== delete =====\n");
-    delete(tree, 10);
+    delete (tree, 10);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
-    inorder(tree->root);
+    inorder(tree, tree->root);
     printf("\n");
 
-    delete(tree, 26);
+    delete (tree, 26);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
-    inorder(tree->root);
+    inorder(tree, tree->root);
     printf("\n");
 
-    delete(tree, 25);
+    delete (tree, 25);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
-    inorder(tree->root);
+    inorder(tree, tree->root);
+    printf("\n");
+
+    delete (tree, 11);
+    printf("tree root: %d\n", tree->root->data);
+    printf("inorder traversal:\n");
+    inorder(tree, tree->root);
     printf("\n");
     return 0;
 }
