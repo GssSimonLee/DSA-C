@@ -259,7 +259,8 @@ void insert(rbtree *tree, int data)
     treenode *newnode = createnode(data);
     newnode->left = newnode->right = tree->NIL;
     newnode->parent = curr;
-    if (curr == tree->NIL) {
+    if (curr == tree->NIL)
+    {
         tree->root = newnode;
     }
     else if (data > curr->data)
@@ -428,13 +429,70 @@ void deletefixup(rbtree *tree, treenode *x)
     x->color = Black;
 }
 
-void delete(rbtree *tree, int target)
+/*
+    delete without transplant
+*/
+void delete2(rbtree *tree, int target)
 {
-    if (tree->root == tree->NIL)
+    treenode *z = search(tree, target);
+    treenode *y = z;
+    treenode *x;
+    color y_original_color = y->color;
+    if (z == tree->NIL)
     {
-        printf("target: %d not found.", target);
+        printf("target %d not found in tree\n", target);
         return;
     }
+    // z has two children -> find y (successor of z)
+    if (z->left != tree->NIL && z->right != tree->NIL)
+    {
+        y = findsuccessor(tree, z->right);
+        y_original_color = y->color;
+    }
+
+    // do stuff on y and x
+    if (y->left != tree->NIL)
+    {
+        x = y->left;
+    }
+    else
+    { // y->right != NIL;
+        x = y->right;
+    }
+
+    x->parent = y->parent;
+    // y is not root
+    if (y->parent != tree->NIL)
+    {
+        if (y == y->parent->left)
+        {
+            y->parent->left = x;
+        }
+        else
+        {
+            y->parent->right = x;
+        }
+    }
+    else
+    {
+        tree->root = x;
+    }
+
+    z->data = y->data;
+
+    if (y_original_color == Black)
+    {
+        deletefixup(tree, x);
+    }
+
+    free(y);
+}
+
+/*
+    delete with transplant
+*/
+void delete(rbtree *tree, int target)
+{
     /*
         target(int): the target value user want to delete
         z (treenode*): pointer point to the node value equals to target
@@ -446,6 +504,11 @@ void delete(rbtree *tree, int target)
     treenode *y = z;
     treenode *x;
     color y_original_color = y->color;
+    if (z == tree->NIL)
+    {
+        printf("target %d not found in tree\n", target);
+        return;
+    }
 
     // z has zero or one child (z->right)
     if (z->left == tree->NIL)
@@ -486,7 +549,7 @@ void delete(rbtree *tree, int target)
         deletefixup(tree, x);
     }
 
-    // free(x);
+    free(z);
 }
 
 /*
@@ -519,25 +582,29 @@ int main()
     printf("\n");
 
     printf("===== delete =====\n");
-    delete (tree, 10);
+    printf("delete 10\n");
+    delete(tree, 10);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
     inorder(tree, tree->root);
     printf("\n");
 
-    delete (tree, 26);
+    printf("delete 26\n");
+    delete(tree, 26);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
     inorder(tree, tree->root);
     printf("\n");
 
-    delete (tree, 25);
+    printf("delete 25\n");
+    delete(tree, 25);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
     inorder(tree, tree->root);
     printf("\n");
 
-    delete (tree, 11);
+    printf("delete 11\n");
+    delete(tree, 11);
     printf("tree root: %d\n", tree->root->data);
     printf("inorder traversal:\n");
     inorder(tree, tree->root);
