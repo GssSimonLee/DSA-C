@@ -6,7 +6,7 @@
     dealing conflict using separate chaining
 */
 typedef struct node {
-    char *key;
+    const char *key;
     void *value;
     struct node *next;
 } node;
@@ -52,6 +52,7 @@ hashtable *createtable(int size) {
 void insert(hashtable *t, const char *key, void *value) {
     unsigned int index = hash(key, t->size);
     node *n = createnode(key, value);
+    // prepend new node in the front of table[index]
     n->next = t->table[index];
     t->table[index] = n;
 }
