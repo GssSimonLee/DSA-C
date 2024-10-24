@@ -15,6 +15,7 @@ node* createnode(int data) {
     node* newnode = (node*)malloc(sizeof(node));
     if (newnode != NULL) {
         newnode->data = data;
+        newnode->next = NULL;
     }
     return newnode;
 }
@@ -33,11 +34,13 @@ void append(singlelist *list, int data) {
     if (list->head == NULL) {
         list->head = createnode(data);
     }
-    node *current = list->head;
-    while(current->next) {
-        current = current->next;
+    node *curr = list->head;
+    node *prev = NULL;
+    while(curr != NULL) {
+        prev = curr;
+        curr = curr->next;
     }
-    current->next = createnode(data);
+    prev->next = createnode(data);
 }
 
 void reverselist(singlelist *list) {
